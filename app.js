@@ -19,6 +19,7 @@ const userName = () => localStorage.getItem(NAME_KEY) || '';
 const esc = (s) => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const sealChars = () => esc(userName().split(/[\s　]+/)[0].slice(0,2));
 const nowJp = () => { const d=new Date(); return `${d.getHours()}時${pad(d.getMinutes())}分`; };
+const monthShift = (ym,delta) => { const [y,m]=ym.split('-').map(Number), t=new Date(y, m-1+delta, 1); return `${t.getFullYear()}-${pad(t.getMonth()+1)}`; };
 
 function current() { return load()[dateKey()] || {}; }
 function setToday(patch) { const all=load(); all[dateKey()]={...(all[dateKey()]||{}),...patch,date:dateKey()}; save(all); render(); }
@@ -40,6 +41,22 @@ function punch(type) {
   if(type==='clockOut') setToday({clockOut:now});
   slamStamp();
   toast({clockIn:`出勤 ${nowJp()} 記帳`,breakStart:`休憩入 ${nowJp()} 記帳`,breakEnd:`休憩戻 ${nowJp()} 記帳`,clockOut:`退勤 ${nowJp()} 記帳　お疲れさまでした`}[type]);
+}
+let curMonth = dateKey().slice(0,7), flipping = false;
+function flipTo(newYm) {
+  const setMonth = () => { curMonth=newYm; $('monthFilter').value=newYm; render(); };
+  if (newYm===curMonth) { setMonth(); return; }
+  const sheet=document.querySelector('.sheet');
+  if (flipping || matchMedia('(prefers-reduced-motion: reduce)').matches) { setMonth(); return; }
+  const dir = newYm>curMonth ? 'fwd' : 'back';
+  flipping=true;
+  sheet.classList.add(`flip-out-${dir}`);
+  sheet.addEventListener('animationend', () => {
+    sheet.classList.remove(`flip-out-${dir}`);
+    setMonth();
+    sheet.classList.add(`flip-in-${dir}`);
+    sheet.addEventListener('animationend', () => { sheet.classList.remove(`flip-in-${dir}`); flipping=false; }, {once:true});
+  }, {once:true});
 }
 function renderName() {
   const name=userName();
@@ -71,7 +88,11 @@ function localIso(date,time) { return new Date(`${date}T${time}:00`).toISOString
 function exportCsv() { const month=$('monthFilter').value, rows=Object.values(load()).filter(x=>x.date?.startsWith(month)); const csv=['日付,出勤,退勤,休憩(分),実働(分)',...rows.map(r=>[r.date,timeText(r.clockIn),timeText(r.clockOut),r.breakMinutes||0,workMinutes(r)].join(','))].join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'})); a.download=`attendance-${month}.csv`; a.click(); URL.revokeObjectURL(a.href); }
 
 ['clockIn','breakStart','breakEnd','clockOut'].forEach(id=>$(id).onclick=()=>punch(id));
-$('monthFilter').value=dateKey().slice(0,7); $('monthFilter').onchange=render; $('exportCsv').onclick=exportCsv;
+$('monthFilter').value=curMonth;
+$('monthFilter').onchange=()=>{ const v=$('monthFilter').value; $('monthFilter').value=curMonth; if(v) flipTo(v); };
+$('prevMonth').onclick=()=>flipTo(monthShift(curMonth,-1));
+$('nextMonth').onclick=()=>flipTo(monthShift(curMonth,1));
+$('exportCsv').onclick=exportCsv;
 $('userName').onclick=()=>{ const name=prompt('氏名を記入してください（認印にも使われます）', userName()); if(name!==null){ localStorage.setItem(NAME_KEY,name.trim()); renderName(); render(); } };
 $('saveEdit').onclick=(e)=>{ e.preventDefault(); const date=$('editDate').value; const all=load(); all[date]={...all[date],clockIn:localIso(date,$('editIn').value),clockOut:localIso(date,$('editOut').value),breakMinutes:Number($('editBreak').value),edited:true}; save(all); $('editDialog').close(); render(); toast('修正を記帳しました'); };
 updateClock(); setInterval(updateClock,1000); renderName(); render();
