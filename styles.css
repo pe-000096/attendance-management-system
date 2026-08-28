@@ -18,16 +18,20 @@ body {
   background-image: radial-gradient(ellipse at 50% 20%, #ffffff0d, transparent 60%);
   min-height: 100vh;
   padding: 44px 0 64px;
-  perspective: 1800px;
 }
 button, input { font: inherit; color: inherit; }
 .pen { font-family: "Zen Kurenaido", "Noto Serif JP", sans-serif; color: var(--pen); }
 
 /* ---- 台帳用紙 ---- */
-.sheet {
+.book {
   position: relative;
   width: min(1000px, calc(100% - 32px));
   margin: 0 auto;
+  perspective: 2400px;
+}
+.sheet {
+  position: relative;
+  width: 100%;
   padding: 52px 64px 44px 84px;
   background: var(--paper);
   box-shadow: 0 1px 3px #00000050, 0 14px 40px #00000055;
@@ -37,17 +41,53 @@ button, input { font: inherit; color: inherit; }
 .sheet::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 60px #a4926420; }
 
 /* ---- 頁捲り ---- */
-.sheet { transform-origin: left center; }
-.sheet.flip-out-fwd { animation: flipOutFwd .3s ease-in forwards; }
-.sheet.flip-in-fwd { animation: flipInFwd .38s cubic-bezier(.2, .75, .3, 1); }
-.sheet.flip-out-back { animation: flipOutBack .3s ease-in forwards; }
-.sheet.flip-in-back { animation: flipInBack .38s cubic-bezier(.2, .75, .3, 1); }
-@keyframes flipOutFwd { to { transform: rotateY(-86deg); box-shadow: 40px 30px 70px #00000070; } }
-@keyframes flipInFwd { from { transform: rotateY(74deg); box-shadow: -40px 30px 70px #00000070; } to { transform: rotateY(0); } }
-@keyframes flipOutBack { to { transform: rotateY(86deg); box-shadow: -40px 30px 70px #00000070; } }
-@keyframes flipInBack { from { transform: rotateY(-74deg); box-shadow: 40px 30px 70px #00000070; } to { transform: rotateY(0); } }
+/* 捲れる紙: 現ページの複製(表)と紙の裏面を持つ両面要素が、綴じ側を軸に180°回転する。
+   下では本物のシートが次のページを既に表示している。 */
+.turn-page {
+  position: absolute; inset: 0; z-index: 6;
+  transform-origin: left center; transform-style: preserve-3d;
+  pointer-events: none; will-change: transform;
+}
+.turn-page .face { position: absolute; inset: 0; backface-visibility: hidden; }
+.turn-page .sheet.face-front { width: 100%; height: 100%; overflow: hidden; }
+.page-back {
+  transform: rotateY(180deg);
+  background: var(--paper);
+  background-image: radial-gradient(#00000005 1px, transparent 1px);
+  background-size: 5px 5px;
+  box-shadow: 0 1px 3px #00000050, 0 14px 40px #00000055;
+  overflow: hidden;
+}
+.page-back .ghost { /* 裏写り: 表の内容が薄く透ける */
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  transform: scaleX(-1); opacity: .06; filter: blur(1px);
+  box-shadow: none; pointer-events: none;
+}
+.page-back::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to left, #00000012, transparent 30%); }
+.turn-page.turn-fwd { animation: turnFwd .8s cubic-bezier(.32, .06, .24, 1) forwards; }
+.turn-page.turn-back { animation: turnBack .8s cubic-bezier(.32, .06, .24, 1) forwards; }
+@keyframes turnFwd {
+  0%   { transform: rotateY(0deg); }
+  30%  { transform: rotateY(-48deg) rotateX(1.4deg); }
+  62%  { transform: rotateY(-116deg) rotateX(-.9deg); }
+  100% { transform: rotateY(-178deg); }
+}
+@keyframes turnBack {
+  0%   { transform: rotateY(-178deg); }
+  38%  { transform: rotateY(-124deg) rotateX(1.2deg); }
+  70%  { transform: rotateY(-54deg) rotateX(-.9deg); }
+  100% { transform: rotateY(0deg); }
+}
+.turn-shadow { /* 捲れる紙が下のページに落とす影 */
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: linear-gradient(to right, #00000066, transparent 58%);
+  opacity: 0;
+}
+.turn-shadow.fwd { animation: sweepShadow .8s ease-in-out forwards; }
+.turn-shadow.back { animation: sweepShadow .8s ease-in-out forwards; }
+@keyframes sweepShadow { 0% { opacity: 0; } 45% { opacity: .38; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .sheet.flip-out-fwd, .sheet.flip-in-fwd, .sheet.flip-out-back, .sheet.flip-in-back { animation: none; }
+  .turn-page, .turn-shadow { display: none; }
   .stamp.slam { animation: none; }
 }
 .hole { position: absolute; left: 26px; width: 17px; height: 17px; border-radius: 50%; background: var(--desk); box-shadow: inset 0 2px 3px #00000060, 0 1px 0 #ffffff70; }
@@ -174,7 +214,8 @@ label input:focus { outline: none; border-bottom-color: var(--ink); }
 
 @media (max-width: 760px) {
   body { padding: 16px 0 40px; }
-  .sheet { width: min(100% - 16px, 1000px); padding: 44px 22px 40px; }
+  .book { width: min(100% - 16px, 1000px); }
+  .sheet { padding: 44px 22px 40px; }
   .hole, .form-no { display: none; }
   .keep { right: 22px; }
   header { flex-direction: column; align-items: flex-start; }

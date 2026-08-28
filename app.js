@@ -43,19 +43,39 @@ function punch(type) {
   toast({clockIn:`出勤 ${nowJp()} 記帳`,breakStart:`休憩入 ${nowJp()} 記帳`,breakEnd:`休憩戻 ${nowJp()} 記帳`,clockOut:`退勤 ${nowJp()} 記帳　お疲れさまでした`}[type]);
 }
 let curMonth = dateKey().slice(0,7), flipping = false;
+function renderFor(ym) { curMonth=ym; $('monthFilter').value=ym; render(); }
+// 現在のシートの静的な複製（捲れていく紙の表面になる）
+function snapshotSheet() {
+  const sheet=document.querySelector('main.sheet'), mv=$('monthFilter').value;
+  const c=sheet.cloneNode(true);
+  c.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
+  const mi=c.querySelector('input[type="month"]'); if(mi) mi.setAttribute('value',mv), mi.value=mv;
+  return c;
+}
 function flipTo(newYm) {
-  const setMonth = () => { curMonth=newYm; $('monthFilter').value=newYm; render(); };
-  if (newYm===curMonth) { setMonth(); return; }
-  const sheet=document.querySelector('.sheet');
-  if (flipping || matchMedia('(prefers-reduced-motion: reduce)').matches) { setMonth(); return; }
-  const dir = newYm>curMonth ? 'fwd' : 'back';
+  if (newYm===curMonth) return;
+  if (flipping || matchMedia('(prefers-reduced-motion: reduce)').matches) { renderFor(newYm); return; }
   flipping=true;
-  sheet.classList.add(`flip-out-${dir}`);
-  sheet.addEventListener('animationend', () => {
-    sheet.classList.remove(`flip-out-${dir}`);
-    setMonth();
-    sheet.classList.add(`flip-in-${dir}`);
-    sheet.addEventListener('animationend', () => { sheet.classList.remove(`flip-in-${dir}`); flipping=false; }, {once:true});
+  const book=document.querySelector('.book'), sheet=document.querySelector('main.sheet');
+  const dir=newYm>curMonth?'fwd':'back', oldYm=curMonth;
+  book.style.minHeight=`${sheet.offsetHeight}px`;
+  // 進む: 下を先に新しい月へ差し替え、古いページの複製が捲れて去る。
+  // 戻る: 新しい月の複製が左から降りてきて、着地の瞬間に下を差し替える。
+  let frontSnap;
+  if (dir==='fwd') { frontSnap=snapshotSheet(); renderFor(newYm); }
+  else { renderFor(newYm); frontSnap=snapshotSheet(); renderFor(oldYm); }
+  frontSnap.classList.add('face','face-front');
+  const ghost=frontSnap.cloneNode(true);
+  ghost.classList.remove('face','face-front'); ghost.classList.add('ghost');
+  const back=document.createElement('div'); back.className='face page-back'; back.appendChild(ghost);
+  const turn=document.createElement('div'); turn.className='turn-page'; turn.append(frontSnap, back);
+  const shadow=document.createElement('div'); shadow.className=`turn-shadow ${dir}`;
+  if (dir==='back') turn.style.transform='rotateY(-178deg)';
+  book.append(shadow, turn);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>turn.classList.add(`turn-${dir}`)));
+  turn.addEventListener('animationend', () => {
+    if (dir==='back') renderFor(newYm);
+    turn.remove(); shadow.remove(); book.style.minHeight=''; flipping=false;
   }, {once:true});
 }
 function renderName() {
