@@ -7,11 +7,21 @@
   <title>出勤簿 | 勤怠管理台帳</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Zen+Kurenaido&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="inkrough">
+    <feTurbulence type="fractalNoise" baseFrequency="0.35" numOctaves="2" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6"/>
+  </filter></svg>
+
   <main class="sheet">
+    <span class="hole h1" aria-hidden="true"></span>
+    <span class="hole h2" aria-hidden="true"></span>
+    <p class="form-no">様式第一号（第四条関係）</p>
+    <p class="keep">保存期間　五年</p>
+
     <header>
       <div class="title-block">
         <p class="tate" id="tateLabel"></p>
@@ -22,6 +32,7 @@
       </div>
       <div class="head-right">
         <p class="wa-date" id="today"></p>
+        <p class="name">氏名<button type="button" class="pen" id="userName" title="クリックして氏名を記入">（未記入）</button></p>
       </div>
     </header>
 
@@ -49,21 +60,21 @@
       </div>
     </div>
 
-    <div class="summary" aria-label="月次サマリー">
-      <div><span>勤務日数</span><strong id="workDays">0<i>日</i></strong></div>
-      <div><span>総勤務時間</span><strong id="totalHours">0<i>時間</i>00<i>分</i></strong></div>
-      <div><span>平均勤務</span><strong id="averageHours">0<i>時間</i>00<i>分</i></strong></div>
-      <div><span>残業時間</span><strong id="overtimeHours">0<i>時間</i>00<i>分</i></strong></div>
-    </div>
-
     <div class="table-wrap">
       <table>
-        <thead><tr><th>日付</th><th>曜日</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>状態</th><th></th></tr></thead>
+        <thead><tr><th>日付</th><th>曜日</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>状態</th><th class="c">認印</th><th></th></tr></thead>
         <tbody id="recordsBody"></tbody>
-        <tfoot id="recordsFoot" hidden><tr><td colspan="5">合計</td><td id="footTotal"></td><td colspan="2"></td></tr></tfoot>
+        <tfoot id="recordsFoot" hidden><tr><td colspan="2">合計</td><td colspan="7">
+          <div class="tally">
+            <span>勤務日数<b id="workDays">0日</b></span>
+            <span>総勤務<b id="totalHours">0:00</b></span>
+            <span>平均<b id="averageHours">0:00</b></span>
+            <span>残業<b id="overtimeHours">0:00</b></span>
+          </div>
+        </td></tr></tfoot>
       </table>
     </div>
-    <p class="empty" id="empty">この月の勤怠記録はありません。</p>
+    <p class="empty" id="empty">この月の記載はありません。</p>
   </main>
 
   <dialog id="editDialog">
