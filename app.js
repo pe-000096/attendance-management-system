@@ -9,10 +9,18 @@ const minutesBetween = (a,b) => Math.max(0, Math.floor((new Date(b)-new Date(a))
 const workMinutes = (r) => r.clockIn && r.clockOut ? Math.max(0, minutesBetween(r.clockIn,r.clockOut)-(r.breakMinutes||0)) : 0;
 const duration = (mins) => `${Math.floor(mins/60)}:${pad(mins%60)}`;
 const toast = (message) => { $('toast').textContent=message; $('toast').classList.add('show'); setTimeout(()=>$('toast').classList.remove('show'),2200); };
+const durationJp = (mins) => `${Math.floor(mins/60)}<i>時間</i>${pad(mins%60)}<i>分</i>`;
+const DOW = ['日','月','火','水','木','金','土'];
+const kanjiNum = (n) => { const d=['','一','二','三','四','五','六','七','八','九'], t=Math.floor(n/10), o=n%10; return (t?(t>1?d[t]:'')+'十':'')+d[o] || '〇'; };
+const eraYear = (ym) => new Date(`${ym}-01T00:00:00`).toLocaleDateString('ja-JP-u-ca-japanese',{era:'long',year:'numeric'});
 
 function current() { return load()[dateKey()] || {}; }
 function setToday(patch) { const all=load(); all[dateKey()]={...(all[dateKey()]||{}),...patch,date:dateKey()}; save(all); render(); }
-function updateClock() { const now=new Date(); $('clock').textContent=now.toLocaleTimeString('ja-JP'); $('today').textContent=now.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'}); }
+function updateClock() {
+  const now=new Date();
+  $('clock').innerHTML=`${now.getHours()}:${pad(now.getMinutes())}<small>:${pad(now.getSeconds())}</small>`;
+  $('today').textContent=`${now.toLocaleDateString('ja-JP-u-ca-japanese',{era:'long',year:'numeric',month:'long',day:'numeric'})} ${DOW[now.getDay()]}曜日`;
+}
 function punch(type) {
   const r=current(), now=new Date().toISOString();
   if(type==='clockIn') setToday({clockIn:now});
@@ -24,12 +32,19 @@ function punch(type) {
 function render() {
   const r=current(), working=!!r.clockIn&&!r.clockOut, breaking=working&&!!r.breakStart;
   $('clockIn').disabled=!!r.clockIn; $('breakStart').disabled=!working||breaking; $('breakEnd').disabled=!breaking; $('clockOut').disabled=!working||breaking;
-  $('status').className='status'+(working?' active':''); $('status').innerHTML=`<span></span>${breaking?'休憩中':working?'勤務中':r.clockOut?'退勤済み':'未出勤'}`;
+  $('status').className='stamp'+(breaking?' break':working?' active':r.clockOut?' done':'');
+  $('status').innerHTML=`<span>${breaking?'休憩中':working?'勤務中':r.clockOut?'退勤済':'未出勤'}</span>`;
   const month=$('monthFilter').value, rows=Object.values(load()).filter(x=>x.date?.startsWith(month)).sort((a,b)=>b.date.localeCompare(a.date));
-  $('recordsBody').innerHTML=rows.map(x=>`<tr><td>${x.date.replaceAll('-','/')}</td><td>${timeText(x.clockIn)}</td><td>${timeText(x.clockOut)}</td><td>${duration(x.breakMinutes||0)}</td><td>${x.clockOut?duration(workMinutes(x)):'—'}</td><td><span class="badge ${x.clockOut?'':'open'}">${x.clockOut?'確定':'勤務中'}</span></td><td><button class="edit" data-date="${x.date}">修正</button></td></tr>`).join('');
+  $('ledgerTitle').textContent=`${kanjiNum(Number(month.slice(5)))}月度 記録`;
+  $('tateLabel').textContent=`${eraYear(month).replace(/(\d+)/,m=>kanjiNum(Number(m)))}${kanjiNum(Number(month.slice(5)))}月度`;
+  $('recordsBody').innerHTML=rows.map(x=>{
+    const d=new Date(`${x.date}T00:00:00`), dow=d.getDay();
+    return `<tr><td>${d.getMonth()+1}月${d.getDate()}日</td><td class="dow"><span class="${dow===0?'sun':dow===6?'sat':''}">${DOW[dow]}</span></td><td>${timeText(x.clockIn)}</td><td>${timeText(x.clockOut)}</td><td>${duration(x.breakMinutes||0)}</td><td>${x.clockOut?duration(workMinutes(x)):'—'}</td><td><span class="state ${x.clockOut?'done':'open'}">${x.clockOut?'退勤済':'勤務中'}</span></td><td><button class="edit" data-date="${x.date}">修正</button></td></tr>`;
+  }).join('');
   $('empty').hidden=rows.length>0;
   const completed=rows.filter(x=>x.clockOut), total=completed.reduce((s,x)=>s+workMinutes(x),0), overtime=completed.reduce((s,x)=>s+Math.max(0,workMinutes(x)-480),0);
-  $('workDays').textContent=`${rows.length}日`; $('totalHours').textContent=duration(total); $('averageHours').textContent=duration(completed.length?Math.round(total/completed.length):0); $('overtimeHours').textContent=duration(overtime);
+  $('recordsFoot').hidden=rows.length===0; $('footTotal').textContent=duration(total);
+  $('workDays').innerHTML=`${rows.length}<i>日</i>`; $('totalHours').innerHTML=durationJp(total); $('averageHours').innerHTML=durationJp(completed.length?Math.round(total/completed.length):0); $('overtimeHours').innerHTML=durationJp(overtime);
   document.querySelectorAll('.edit').forEach(b=>b.onclick=()=>openEdit(b.dataset.date));
 }
 function openEdit(date) { const r=load()[date]; $('editDate').value=date; $('editIn').value=r.clockIn?.slice(11,16)||''; $('editOut').value=r.clockOut?.slice(11,16)||''; $('editBreak').value=r.breakMinutes||0; $('editDialog').showModal(); }

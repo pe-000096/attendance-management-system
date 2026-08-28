@@ -4,69 +4,76 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="ブラウザだけで使えるシンプルな勤怠管理システム">
-  <title>TimeFlow | 勤怠管理</title>
+  <title>出勤簿 | 勤怠管理台帳</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">ATTENDANCE MANAGEMENT</p>
-        <h1>TimeFlow</h1>
+  <main class="sheet">
+    <header>
+      <div class="title-block">
+        <p class="tate" id="tateLabel"></p>
+        <div>
+          <h1>出勤簿</h1>
+          <p class="subtitle">— 勤怠管理台帳 —</p>
+        </div>
       </div>
-      <div class="today" id="today"></div>
+      <div class="head-right">
+        <p class="wa-date" id="today"></p>
+      </div>
     </header>
 
-    <section class="hero card">
-      <div>
-        <p class="muted">現在時刻</p>
-        <p class="clock" id="clock">--:--:--</p>
-        <p class="status" id="status"><span></span>未出勤</p>
+    <section class="now">
+      <div class="now-left">
+        <div class="stamp" id="status"><span>未出勤</span></div>
+        <div>
+          <p class="clock-label">現在時刻</p>
+          <p class="clock" id="clock">--:--</p>
+        </div>
       </div>
       <div class="actions">
-        <button class="primary" id="clockIn">出勤する</button>
-        <button id="breakStart">休憩開始</button>
-        <button id="breakEnd">休憩終了</button>
-        <button class="danger" id="clockOut">退勤する</button>
+        <button id="clockIn" class="in"><span>出勤</span></button>
+        <button id="breakStart"><span>休憩入</span></button>
+        <button id="breakEnd"><span>休憩戻</span></button>
+        <button id="clockOut" class="out"><span>退勤</span></button>
       </div>
     </section>
 
-    <section class="stats" aria-label="月次サマリー">
-      <article class="card stat"><span>勤務日数</span><strong id="workDays">0日</strong></article>
-      <article class="card stat"><span>総勤務時間</span><strong id="totalHours">0:00</strong></article>
-      <article class="card stat"><span>平均勤務時間</span><strong id="averageHours">0:00</strong></article>
-      <article class="card stat"><span>残業時間</span><strong id="overtimeHours">0:00</strong></article>
-    </section>
+    <div class="ledger-head">
+      <h2 id="ledgerTitle">記録</h2>
+      <div class="tools">
+        <input type="month" id="monthFilter" aria-label="対象月">
+        <button id="exportCsv" class="tool-link">CSVに書き出す</button>
+      </div>
+    </div>
 
-    <section class="card records">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">MONTHLY RECORDS</p>
-          <h2>勤怠履歴</h2>
-        </div>
-        <div class="toolbar">
-          <input type="month" id="monthFilter" aria-label="対象月">
-          <button id="exportCsv">CSV出力</button>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>日付</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>状態</th><th></th></tr></thead>
-          <tbody id="recordsBody"></tbody>
-        </table>
-      </div>
-      <p class="empty" id="empty">この月の勤怠データはありません。</p>
-    </section>
+    <div class="summary" aria-label="月次サマリー">
+      <div><span>勤務日数</span><strong id="workDays">0<i>日</i></strong></div>
+      <div><span>総勤務時間</span><strong id="totalHours">0<i>時間</i>00<i>分</i></strong></div>
+      <div><span>平均勤務</span><strong id="averageHours">0<i>時間</i>00<i>分</i></strong></div>
+      <div><span>残業時間</span><strong id="overtimeHours">0<i>時間</i>00<i>分</i></strong></div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>日付</th><th>曜日</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>状態</th><th></th></tr></thead>
+        <tbody id="recordsBody"></tbody>
+        <tfoot id="recordsFoot" hidden><tr><td colspan="5">合計</td><td id="footTotal"></td><td colspan="2"></td></tr></tfoot>
+      </table>
+    </div>
+    <p class="empty" id="empty">この月の勤怠記録はありません。</p>
   </main>
 
   <dialog id="editDialog">
     <form method="dialog" id="editForm">
-      <h2>勤怠を修正</h2>
+      <h2>勤怠の修正</h2>
       <input type="hidden" id="editDate">
       <label>出勤時刻<input type="time" id="editIn" required></label>
       <label>退勤時刻<input type="time" id="editOut" required></label>
       <label>休憩（分）<input type="number" id="editBreak" min="0" max="600" required></label>
-      <div class="dialog-actions"><button value="cancel">キャンセル</button><button class="primary" value="default" id="saveEdit">保存</button></div>
+      <div class="dialog-actions"><button value="cancel">取消</button><button class="primary" value="default" id="saveEdit">記帳する</button></div>
     </form>
   </dialog>
   <div class="toast" id="toast" role="status"></div>
