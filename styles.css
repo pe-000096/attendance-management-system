@@ -18,6 +18,7 @@ body {
   background-image: radial-gradient(ellipse at 50% 20%, #ffffff0d, transparent 60%);
   min-height: 100vh;
   padding: 44px 0 64px;
+  perspective: 1800px;
 }
 button, input { font: inherit; color: inherit; }
 .pen { font-family: "Zen Kurenaido", "Noto Serif JP", sans-serif; color: var(--pen); }
@@ -34,6 +35,21 @@ button, input { font: inherit; color: inherit; }
   background-size: 5px 5px, 100% 100%;
 }
 .sheet::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 60px #a4926420; }
+
+/* ---- 頁捲り ---- */
+.sheet { transform-origin: left center; }
+.sheet.flip-out-fwd { animation: flipOutFwd .3s ease-in forwards; }
+.sheet.flip-in-fwd { animation: flipInFwd .38s cubic-bezier(.2, .75, .3, 1); }
+.sheet.flip-out-back { animation: flipOutBack .3s ease-in forwards; }
+.sheet.flip-in-back { animation: flipInBack .38s cubic-bezier(.2, .75, .3, 1); }
+@keyframes flipOutFwd { to { transform: rotateY(-86deg); box-shadow: 40px 30px 70px #00000070; } }
+@keyframes flipInFwd { from { transform: rotateY(74deg); box-shadow: -40px 30px 70px #00000070; } to { transform: rotateY(0); } }
+@keyframes flipOutBack { to { transform: rotateY(86deg); box-shadow: -40px 30px 70px #00000070; } }
+@keyframes flipInBack { from { transform: rotateY(-74deg); box-shadow: 40px 30px 70px #00000070; } to { transform: rotateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .sheet.flip-out-fwd, .sheet.flip-in-fwd, .sheet.flip-out-back, .sheet.flip-in-back { animation: none; }
+  .stamp.slam { animation: none; }
+}
 .hole { position: absolute; left: 26px; width: 17px; height: 17px; border-radius: 50%; background: var(--desk); box-shadow: inset 0 2px 3px #00000060, 0 1px 0 #ffffff70; }
 .hole.h1 { top: 26%; } .hole.h2 { top: 72%; }
 .form-no { position: absolute; top: 18px; left: 84px; font-size: .68rem; color: var(--faint); letter-spacing: .1em; }
